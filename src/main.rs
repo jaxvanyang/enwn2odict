@@ -8,8 +8,8 @@ use std::{
 
 use enwn2odict::wn::{LexicalResource, Pronunciation, Synset};
 use odict::{
-	Definition, DefinitionType, Dictionary, DictionaryWriter, Entry, Etymology, Example, Note,
-	PartOfSpeech, Sense, ID,
+	Definition, DefinitionType, Dictionary, DictionaryWriter, Entry, EntryRef, Etymology, Example,
+	Note, PartOfSpeech, Sense, ID,
 };
 
 fn main() {
@@ -70,6 +70,8 @@ fn main() {
 					term: term.clone(),
 					see_also: None,
 					etymologies: Vec::new(),
+					lemma: None,
+					forms: Vec::new(),
 				},
 			);
 
@@ -106,6 +108,7 @@ fn main() {
 			id: Some(wn_entry.id.clone()),
 			pronunciation: pronunciation.clone(),
 			// We don't have to good place to put the variant forms, here OK for now.
+			// TODO: now we have forms
 			description: Some(forms),
 			senses,
 		};
@@ -156,6 +159,8 @@ fn add_see_also(entries: &mut HashMap<String, Entry>, form: &String, root_forms:
 				term: form.clone(),
 				see_also: None,
 				etymologies: Vec::new(),
+				lemma: None,
+				forms: vec![],
 			},
 		);
 	}
@@ -164,7 +169,7 @@ fn add_see_also(entries: &mut HashMap<String, Entry>, form: &String, root_forms:
 
 	// ODict doesn't support multiple see also alias, so we only add alias in one to one case
 	if root_forms.len() == 1 {
-		entry.see_also = Some(root_forms[0].clone());
+		entry.see_also = Some(EntryRef::new(root_forms[0].clone()));
 	}
 }
 
