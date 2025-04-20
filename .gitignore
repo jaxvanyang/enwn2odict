@@ -1,3 +1,4 @@
 *.odict
 *.xml
+.zed/
 /target

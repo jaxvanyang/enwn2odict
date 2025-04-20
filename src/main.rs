@@ -1,5 +1,5 @@
 use std::{
-	collections::HashMap,
+	collections::{hash_map, HashMap},
 	env::{self},
 	fs::File,
 	io::Read,
@@ -8,8 +8,8 @@ use std::{
 
 use enwn2odict::wn::{LexicalResource, Pronunciation, Synset};
 use odict::{
-	Definition, DefinitionType, Dictionary, DictionaryWriter, Entry, Etymology, Example, MDString,
-	Note, PartOfSpeech, Sense, ID,
+	Definition, DefinitionType, Dictionary, DictionaryWriter, Entry, Etymology, Example, Note,
+	PartOfSpeech, Sense, ID,
 };
 
 fn main() {
@@ -35,11 +35,11 @@ fn main() {
 	for wn_entry in &wn_lexicon.lexical_entry {
 		let term = &wn_entry.lemma.written_form;
 		for wn_sense in &wn_entry.sense {
-			let id = wn_sense.synset.clone();
-			if wn_id2synonyms.contains_key(&id) {
-				wn_id2synonyms.get_mut(&id).unwrap().push(term.clone());
+			let id = &wn_sense.synset;
+			if let hash_map::Entry::Vacant(e) = wn_id2synonyms.entry(id.clone()) {
+				e.insert(vec![term.clone()]);
 			} else {
-				wn_id2synonyms.insert(id, vec![term.clone()]);
+				wn_id2synonyms.get_mut(id).unwrap().push(term.clone());
 			}
 		}
 	}
@@ -106,7 +106,7 @@ fn main() {
 			id: Some(wn_entry.id.clone()),
 			pronunciation: pronunciation.clone(),
 			// We don't have to good place to put the variant forms, here OK for now.
-			description: Some(MDString::from(forms.as_str())),
+			description: Some(forms),
 			senses,
 		};
 
@@ -145,7 +145,7 @@ fn add_see_also(entries: &mut HashMap<String, Entry>, form: &String, root_forms:
 	let ety = Etymology {
 		id: None, // no synset, therefore no ID
 		pronunciation: None,
-		description: Some(MDString::from(see_also_info.as_str())),
+		description: Some(see_also_info),
 		senses: HashMap::new(),
 	};
 
@@ -191,19 +191,18 @@ fn build_pronunciation(pronunciation: &Option<Vec<Pronunciation>>) -> Option<Str
 	}
 }
 
-fn build_definition(synset: &Synset, synonyms: &Vec<String>) -> Definition {
+fn build_definition(synset: &Synset, synonyms: &[String]) -> Definition {
 	let id = &synset.id;
 	// WordNet may provides multiple definitions, but they are of the same meaning.
 	// And we should combine them to use the same examples.
-	let def = synset.definition.join("; ");
-	let value = MDString::from(def.as_str());
+	let value = synset.definition.join("; ");
 
 	let mut examples = Vec::new();
 	if let Some(wn_examples) = &synset.example {
 		for wn_example in wn_examples {
 			if let Some(text) = &wn_example.text {
 				examples.push(Example {
-					value: MDString::from(text.as_str()),
+					value: text.clone(),
 				});
 			}
 		}
@@ -222,10 +221,10 @@ fn build_definition(synset: &Synset, synonyms: &Vec<String>) -> Definition {
 	}
 }
 
-fn build_synonym_note(synonyms: &Vec<String>) -> Note {
+fn build_synonym_note(synonyms: &[String]) -> Note {
 	Note {
 		id: None,
-		value: MDString::from(format!("Synonyms: {}", synonyms.join(", ")).as_str()),
+		value: format!("Synonyms: {}", synonyms.join(", ")),
 		examples: Vec::new(),
 	}
 }
